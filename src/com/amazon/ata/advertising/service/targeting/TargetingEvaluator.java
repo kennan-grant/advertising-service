@@ -5,13 +5,18 @@ import com.amazon.ata.advertising.service.targeting.predicate.TargetingPredicate
 import com.amazon.ata.advertising.service.targeting.predicate.TargetingPredicateResult;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * Evaluates TargetingPredicates for a given RequestContext.
  */
 public class TargetingEvaluator {
     public static final boolean IMPLEMENTED_STREAMS = true;
-    public static final boolean IMPLEMENTED_CONCURRENCY = false;
+    public static final boolean IMPLEMENTED_CONCURRENCY = true;
     private final RequestContext requestContext;
 
     /**
@@ -29,12 +34,23 @@ public class TargetingEvaluator {
      * @return TRUE if all of the TargetingPredicates evaluate to TRUE against the RequestContext, FALSE otherwise.
      */
     public TargetingPredicateResult evaluate(TargetingGroup targetingGroup) {
+        ExecutorService executor = Executors.newCachedThreadPool();
+
         List<TargetingPredicate> targetingPredicates = targetingGroup.getTargetingPredicates();
-
-        boolean allTruePredicates = targetingPredicates.stream()
-                .map(predicate -> predicate.evaluate(requestContext))
+        List<Future<TargetingPredicateResult>> futures = targetingPredicates.stream()
+                .map(predicate -> executor.submit(() -> predicate.evaluate(requestContext)))
+                .collect(Collectors.toList());
+        boolean allTruePredicates = futures.stream()
+                .map(future -> {
+                    try {
+                        return future.get();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    } catch (ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .allMatch(TargetingPredicateResult::isTrue);
-
         return allTruePredicates ? TargetingPredicateResult.TRUE :
                                    TargetingPredicateResult.FALSE;
     }
