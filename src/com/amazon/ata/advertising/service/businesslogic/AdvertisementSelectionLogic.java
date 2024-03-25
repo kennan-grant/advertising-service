@@ -9,6 +9,7 @@ import com.amazon.ata.advertising.service.model.RequestContext;
 import com.amazon.ata.advertising.service.targeting.TargetingEvaluator;
 import com.amazon.ata.advertising.service.targeting.TargetingGroup;
 
+import com.amazon.ata.advertising.service.util.CustomRecord;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -70,15 +71,25 @@ public class AdvertisementSelectionLogic {
         } else {
             final List<AdvertisementContent> contents = contentDao.get(marketplaceId);
             if (CollectionUtils.isNotEmpty(contents)) {
-                List<AdvertisementContent> validAdvertisementContents = contents.stream()
-                        .filter(content -> targetingGroupDao.get(content.getContentId())
-                                .stream()
-                                .anyMatch(targetingGroup -> targetingEvaluator.evaluate(targetingGroup)
-                                        .isTrue()))
+                List<CustomRecord> validAdvertisementContents = contents.stream()
+                        .map(content -> {
+                            Optional<TargetingGroup> optional =
+                                    targetingGroupDao.get(content.getContentId())
+                                    .stream()
+                                    .filter(targetingGroup ->
+                                            targetingEvaluator.evaluate(targetingGroup)
+                                                    .isTrue())
+                                    .sorted((a, b) -> Double.compare(b.getClickThroughRate(), a.getClickThroughRate()))
+                                    .findFirst();
+                            return new CustomRecord(content, optional.get().getClickThroughRate());
+                        }
+                             )
                         .collect(Collectors.toList());
-                AdvertisementContent randomAdvertisementContent = validAdvertisementContents
-                        .get(random.nextInt(validAdvertisementContents.size()));
-                generatedAdvertisement = new GeneratedAdvertisement(randomAdvertisementContent);
+                TreeMap<Double, AdvertisementContent> treeMap = new TreeMap<>((a, b) -> Double.compare(b, a));
+                for (CustomRecord cR : validAdvertisementContents) {
+                    treeMap.put(cR.clickThroughRate, cR.advertisementContent);
+                }
+                generatedAdvertisement = new GeneratedAdvertisement(treeMap.firstEntry().getValue());
             }
         }
         return generatedAdvertisement;
