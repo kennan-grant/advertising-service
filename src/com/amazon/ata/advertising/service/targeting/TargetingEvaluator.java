@@ -51,6 +51,7 @@ public class TargetingEvaluator {
                     }
                 })
                 .allMatch(TargetingPredicateResult::isTrue);
+        executor.shutdown();
         return allTruePredicates ? TargetingPredicateResult.TRUE :
                                    TargetingPredicateResult.FALSE;
     }
