@@ -1,6 +1,4 @@
-#  Unit 7 Project: ATA Advertising Service
 
-## Preliminaries: The More Things Change
 
 ### Ambiguity, Complexity, and Scope
 
@@ -46,6 +44,4 @@ before continuing below.
 
 ### [Mastery Task 1: Filter out the noise](tasks/project-mastery-tasks/MasteryTask01.md)
 ### [Mastery Task 2: Concurrent Tasks](tasks/project-mastery-tasks/MasteryTask02.md)
-### [Mastery Task 3: Ads don't grow on trees (or do they?)](tasks/project-mastery-tasks/MasteryTask03.md)
-
-
+### [Mastery Task 3: Ads don't grow on trees (or do they?)](tasks/project-mastery-ta
